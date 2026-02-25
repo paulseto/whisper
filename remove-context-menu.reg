@@ -1,6 +1,0 @@
-Windows Registry Editor Version 5.00
-
-; Remove "Transcribe with Whisper" from right-click menu for .mp4 and .m4v
-
-[-HKEY_CLASSES_ROOT\SystemFileAssociations\.mp4\shell\TranscribeWithWhisper]
-[-HKEY_CLASSES_ROOT\SystemFileAssociations\.m4v\shell\TranscribeWithWhisper]
