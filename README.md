@@ -11,22 +11,22 @@ Transcribe or translate meeting audio/video to English using [whisper-ctranslate
 
 ## Quick start
 
-1. **Build the image** (once):
-
-   ```bat
-   .\build.bat
-   ```
-
-   Optional: `.\build.bat medium` to use the `medium` model instead of `turbo`.
-
-2. **Transcribe a file**:
+1. **Transcribe a file**:
 
    ```bat
    .\transcribe.bat meeting.mp4
    .\transcribe.bat "C:\Videos\recording.m4v"
    ```
 
-   Output files (e.g. `meeting.txt`, `meeting.srt`) are written next to the source file.
+   Output files (e.g. `meeting.txt`, `meeting.srt`) are written next to the source file. If the Docker image is not found locally, it is pulled from Docker Hub automatically.
+
+2. **Optional -- build the image locally**
+
+   ```bat
+   .\build.bat
+   ```
+
+   Optional arg: `.\build.bat medium` to use the `medium` model instead of `turbo`.
 
 3. **Optional -- speaker diarization (amd64 only)**
 
@@ -53,7 +53,7 @@ To remove it, run `remove-context-menu.bat`.
 
 | Script | Purpose |
 |--------|---------|
-| `transcribe.bat` | Run the container to transcribe one file; transcript and subtitles go beside the source file. |
+| `transcribe.bat` | Run the container to transcribe one file; auto-pulls the image from Docker Hub if not built locally. Transcript and subtitles go beside the source file. |
 | `build.bat` | Build the Docker image for the current platform. Optional arg: model size (e.g. `medium`). Tags as `whisper:latest` and `whisper:YYYYMMDD-HHMM`. |
 | `push.bat` | Build for amd64 and arm64 and push to Docker Hub as `paulseto/whisper:YYYYMMDD-HHMM`. Optional arg: model size. |
 | `push.sh` | Push the locally built image to Docker Hub (bash; for use in Git Bash or WSL). Optional arg: build number tag. |

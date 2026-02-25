@@ -21,6 +21,18 @@ set "outputfile=%basename%.txt"
 REM Pass only the filename to the container so it finds /app/<filename>
 for %%f in ("%filename%") do set "nameonly=%%~nxf"
 
+REM Check if whisper:latest image exists locally; pull from Docker Hub if not
+docker image inspect whisper:latest >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Image whisper:latest not found locally. Pulling from paulseto/whisper...
+    docker pull paulseto/whisper:latest
+    if %errorlevel% neq 0 (
+        echo Failed to pull image. Run build.bat to build locally or check your network.
+        exit /b 1
+    )
+    docker tag paulseto/whisper:latest whisper:latest
+)
+
 echo.
 echo Transcribing: %nameonly%
 echo Transcript will be saved as: %outputfile%
