@@ -1,0 +1,10 @@
+# Media and transcript outputs
+*.m4v
+*.mp4
+*.json
+*.srt
+*.tsv
+*.txt
+*.vtt
+
+.cache/**
