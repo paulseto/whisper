@@ -1,20 +1,25 @@
-FROM python:3.11.11-bookworm
+# Stage 1: Install Python packages in full image (has build tools if needed)
+FROM python:3.12-bookworm AS builder
 
-ARG MODEL_SIZE=turbo
-ENV MODEL_SIZE=${MODEL_SIZE}
-# So entrypoint.sh can use MODEL_SIZE at runtime
-
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir -U pip
 RUN pip install --no-cache-dir whisper-ctranslate2
-# Speaker diarization (pyannote) only on amd64; torchcodec has no arm64 wheel
-# PyTorch 2.6+ defaults weights_only=True; pyannote checkpoints need weights_only=False (env restores old behavior)
-ENV TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
+
 ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "amd64" ]; then pip install --no-cache-dir "pyannote.audio==4.0"; fi
 
-WORKDIR /app
+# Stage 2: Slim runtime image
+FROM python:3.12-slim-bookworm
 
+ARG MODEL_SIZE=turbo
+ENV MODEL_SIZE=${MODEL_SIZE}
+ENV TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+WORKDIR /app
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
