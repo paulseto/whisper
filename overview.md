@@ -27,6 +27,20 @@ Transcript and subtitles are written in the same folder (e.g. `meeting.txt`, `me
 docker run --rm -e HF_TOKEN=your_hf_token -v "/path/to/files:/app" paulseto/whisper:latest meeting.mp4
 ```
 
+## Setup (Linux & Windows)
+
+See the [GitHub repository](https://github.com/paulseto/whisper) for installation instructions, including:
+
+- **Linux** — install `transcribe` to `/usr/local/bin` with env file support
+- **Windows** — add a right-click "Transcribe with Whisper" context menu option
+
+## Configuration
+
+| Environment variable | Description | Default |
+|---|---|---|
+| `MODEL_SIZE` | Whisper model (`tiny`, `base`, `small`, `medium`, `large-v3`, `turbo`) | `turbo` |
+| `HF_TOKEN` | Hugging Face token for speaker diarization (amd64 only) | — |
+
 ## Hugging Face token (for diarization on amd64)
 
 1. Sign up or log in at [huggingface.co](https://huggingface.co/join).

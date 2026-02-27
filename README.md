@@ -2,7 +2,7 @@
 
 Transcribe or translate meeting audio/video to English using [whisper-ctranslate2](https://github.com/Softcatala/whisper-ctranslate2) in Docker. Outputs `.txt`, `.srt`, `.vtt`, `.tsv`, and `.json`. Optional speaker diarization on amd64 with a Hugging Face token.
 
-**Docker image:** [paulseto/whisper](https://hub.docker.com/r/paulseto/whisper) on Docker Hub.
+**Docker image:** [paulseto/whisper](https://hub.docker.com/r/paulseto/whisper) on Docker Hub (linux/amd64 + linux/arm64).
 
 ## Prerequisites
 
@@ -11,61 +11,117 @@ Transcribe or translate meeting audio/video to English using [whisper-ctranslate
 
 ## Quick start
 
-1. **Transcribe a file**:
+```bash
+docker run --rm -v "/path/to/your/files:/app" paulseto/whisper:latest meeting.mp4
+```
 
-   ```bat
-   .\transcribe.bat meeting.mp4
-   .\transcribe.bat "C:\Videos\recording.m4v"
-   ```
+Output files (e.g. `meeting.txt`, `meeting.srt`) are written next to the source file.
 
-   Output files (e.g. `meeting.txt`, `meeting.srt`) are written next to the source file. If the Docker image is not found locally, it is pulled from Docker Hub automatically.
+## Setup on Linux
 
-2. **Optional -- choose a model**
+### Install the transcribe command
 
-   Pass the model as the second argument, or set it via environment variable or `.env` file:
+```bash
+sudo cp transcribe.sh /usr/local/bin/transcribe
+sudo chmod +x /usr/local/bin/transcribe
+```
 
-   ```bat
-   .\transcribe.bat meeting.mp4 large-v3
-   ```
+### Usage
 
-   Or create a `.env` file next to `transcribe.bat`:
+```bash
+transcribe meeting.mp4
+transcribe recording1.m4v recording2.mp3
+MODEL_SIZE=medium transcribe interview.wav
+```
 
-   ```
-   MODEL_SIZE=turbo
-   HF_TOKEN=hf_your_token_here
-   ```
+### Configuration files
 
-   See [Available models](#available-models) for all options.
+The `transcribe` command loads env files in this order (lowest to highest precedence):
 
-3. **Optional -- build the image locally**
+| Source | Location |
+|---|---|
+| System-wide | `/etc/whisper/env` |
+| Per-user | `~/.config/whisper/env` |
+| Per-directory | `./.env` |
+| Environment variables | Inline or exported (highest) |
 
-   ```bat
-   .\build.bat
-   ```
+Environment variables always win. Example `~/.config/whisper/env`:
 
-4. **Optional -- speaker diarization (amd64 only)**
+```
+MODEL_SIZE=medium
+HF_TOKEN=hf_your_token_here
+```
 
-   Set your Hugging Face token (via environment, `.env` file, or shell), then run as above:
+## Setup on Windows
 
-   ```powershell
-   $env:HF_TOKEN = "hf_your_token_here"
-   .\transcribe.bat meeting.mp4
-   ```
+### Install the transcribe command
 
-   Speaker labels appear in the `.srt` file. Diarization is skipped on arm64 (no pyannote in that image).
+Copy `transcribe.bat` to a permanent location, for example:
+
+```
+C:\Tools\transcribe.bat
+```
+
+Usage from the command line:
+
+```bat
+transcribe.bat meeting.mp4
+transcribe.bat meeting.mp4 large-v3
+```
+
+### Configuration files
+
+The `transcribe.bat` script loads env files in this order (lowest to highest precedence):
+
+| Source | Location |
+|---|---|
+| Per-user | `%APPDATA%\whisper\env` |
+| Per-directory | `.\.env` |
+| Environment variables | System/user env vars or inline (highest) |
+
+Environment variables always win. Example `%APPDATA%\whisper\env`:
+
+```
+MODEL_SIZE=medium
+HF_TOKEN=hf_your_token_here
+```
+
+### Right-click context menu
+
+Add **"Transcribe with Whisper"** to the Explorer right-click menu for media files:
+
+1. Run `add-context-menu.bat` to register the menu entry (per-user, no admin required).
+2. Right-click any `.mp4` or `.m4v` file and select **"Transcribe with Whisper"**.
+3. To remove it, run `remove-context-menu.bat`.
+
+## Speaker diarization (amd64 only)
+
+Set your Hugging Face token, then run as above:
+
+**Linux:**
+```bash
+HF_TOKEN=hf_your_token transcribe meeting.mp4
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:HF_TOKEN = "hf_your_token"
+.\transcribe.bat meeting.mp4
+```
+
+Or add `HF_TOKEN` to your env file. Speaker labels appear in the `.srt` file as `[SPEAKER_00]`, `[SPEAKER_01]`, etc.
+
+To get a token:
+1. Sign up at [huggingface.co](https://huggingface.co/join).
+2. Accept the terms for [pyannote/speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1).
+3. Create a Read token at [Settings → Access Tokens](https://huggingface.co/settings/tokens).
+
+Diarization is only available on **amd64** images (pyannote is not installed on arm64).
 
 ## Available models
 
-The model can be set via the `MODEL_SIZE` environment variable, a `.env` file, or as the second argument to `transcribe.bat`:
-
-```bat
-.\transcribe.bat meeting.mp4 large-v3
-```
-
-### Standard models (OpenAI)
-
-| Model | Parameters | VRAM | Relative Speed | Notes |
-|-------|-----------|------|---------------|-------|
+| Model | Parameters | RAM | Relative Speed | Notes |
+|-------|-----------|-----|---------------|-------|
 | `tiny` / `tiny.en` | 39M | ~1 GB | ~10x | Fastest, lowest quality |
 | `base` / `base.en` | 74M | ~1 GB | ~7x | Slightly better than tiny |
 | `small` / `small.en` | 244M | ~2 GB | ~4x | Good for simple audio |
@@ -75,9 +131,9 @@ The model can be set via the `MODEL_SIZE` environment variable, a `.env` file, o
 | `large-v3` | 1550M | ~10 GB | 1x | Most accurate |
 | **`turbo`** | 809M | ~6 GB | ~8x | **Default. Near large-v3 accuracy, 8x faster** |
 
-The `.en` variants are English-only and slightly more accurate for English (mainly noticeable on `tiny` and `base`). `turbo` and `large-v3-turbo` are the same model.
+The `.en` variants are English-only and slightly more accurate for English. `turbo` and `large-v3-turbo` are the same model.
 
-### Distilled models (Hugging Face)
+### Distilled models
 
 | Model | Based On | Relative Speed | Notes |
 |-------|----------|---------------|-------|
@@ -87,57 +143,49 @@ The `.en` variants are English-only and slightly more accurate for English (main
 | `distil-large-v3` | large-v3 | ~4x | English only, compressed |
 | `distil-large-v3.5` | large-v3 | ~4x | Best distilled model |
 
-Distilled models are smaller "student" models trained to approximate the larger model. Faster but less accurate on accented speech, overlapping speakers, and domain-specific terms.
-
 ### Recommendations
 
 - **Best quality:** `large-v3` — most accurate but slowest on CPU.
 - **Best balance:** `turbo` (default) — ~95% of large-v3 quality at 8x the speed.
-- **Fast + decent:** `distil-large-v3.5` — faster than turbo, English-only.
-
-## Windows right-click integration
-
-Add **"Transcribe with Whisper"** to the right-click menu for `.mp4` and `.m4v` files:
-
-1. Copy `transcribe.bat` to your home folder (`%USERPROFILE%`, e.g. `C:\Users\yourname\transcribe.bat`).
-2. Run `add-context-menu.bat` to register the menu entry (per-user, no admin required).
-3. Right-click any `.mp4` or `.m4v` file and select **"Transcribe with Whisper"**.
-
-To remove it, run `remove-context-menu.bat`.
-
-## Project scripts
-
-| Script | Purpose |
-|--------|---------|
-| `transcribe.bat` | Run the container to transcribe one file; auto-pulls the image from Docker Hub if not built locally. Transcript and subtitles go beside the source file. |
-| `build.bat` | Build the Docker image for the current platform. Optional arg: model size (e.g. `medium`). Tags as `whisper:latest` and `whisper:YYYYMMDD-HHMM`. |
-| `push.bat` | Build for amd64 and arm64 and push to Docker Hub as `paulseto/whisper:YYYYMMDD-HHMM`. Optional arg: model size. |
-| `push.sh` | Push the locally built image to Docker Hub (bash; for use in Git Bash or WSL). Optional arg: build number tag. |
-| `add-context-menu.bat` | Add "Transcribe with Whisper" to the Windows right-click menu for `.mp4` and `.m4v` (per-user, uses `%USERPROFILE%\transcribe.bat`). |
-| `remove-context-menu.bat` | Remove that context menu entry. |
+- **Low memory:** `small` — runs well on machines with 2-4 GB available.
 
 ## Running with Docker directly
 
-Mount the folder that contains your file and pass the filename:
+```bash
+docker run --rm -v "/path/to/files:/app" paulseto/whisper:latest meeting.mp4
+```
+
+With a different model:
 
 ```bash
-docker run --rm -v "C:\path\to\folder:/app" whisper:latest meeting.mp4
+docker run --rm -e MODEL_SIZE=medium -v "/path/to/files:/app" paulseto/whisper:latest meeting.mp4
 ```
 
 With diarization (amd64 image):
 
 ```bash
-docker run --rm -e HF_TOKEN=your_token -v "C:\path\to\folder:/app" whisper:latest meeting.mp4
+docker run --rm -e HF_TOKEN=your_token -v "/path/to/files:/app" paulseto/whisper:latest meeting.mp4
 ```
+
+## Project scripts
+
+| Script | Purpose |
+|--------|---------|
+| `transcribe.sh` | Linux/macOS wrapper — transcribe one or more files via Docker. Loads env files from `/etc/whisper/env`, `~/.config/whisper/env`, and `./.env`. |
+| `transcribe.bat` | Windows wrapper — transcribe one file via Docker. Auto-pulls the image if not found locally. Loads env from `%APPDATA%\whisper\env` and `.\.env`. |
+| `build.sh` | Build the Docker image for the current platform. Optional arg: model size (default: `turbo`). |
+| `push.sh` | Multi-platform build (linux/amd64 + linux/arm64) and push to Docker Hub. Optional arg: model size. |
+| `add-context-menu.bat` | Add "Transcribe with Whisper" to the Windows right-click menu for `.mp4` and `.m4v`. |
+| `remove-context-menu.bat` | Remove that context menu entry. |
 
 ## Repository layout
 
 | File | Description |
 |------|-------------|
-| `Dockerfile` | Python 3.11, whisper-ctranslate2, ffmpeg; pyannote (diarization) on amd64 only. |
-| `entrypoint.sh` | Container entrypoint: runs whisper-ctranslate2, outputs all formats; enables diarization when `HF_TOKEN` is set and pyannote is installed. |
-| `overview.md` | Markdown copy for the Docker Hub repository description. |
-| `.gitignore` | Ignores media and transcript files (`.m4v`, `.mp4`, `.txt`, `.srt`, `.vtt`, `.tsv`, `.json`). |
+| `Dockerfile` | Multi-stage build: Python 3.12, whisper-ctranslate2, ffmpeg; pyannote (diarization) on amd64 only. |
+| `entrypoint.sh` | Container entrypoint: runs whisper-ctranslate2, outputs all formats; enables diarization when `HF_TOKEN` is set. Detects OOM kills. |
+| `overview.md` | Markdown description for the Docker Hub repository page. |
+| `.gitignore` | Ignores media and transcript files. |
 
 ## License
 

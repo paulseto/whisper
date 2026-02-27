@@ -22,6 +22,8 @@ docker buildx build --no-cache \
   --build-arg MODEL_SIZE="${MODEL_SIZE}" \
   --tag "${REPO}:latest" \
   --tag "${REPO}:${BUILD_NUMBER}" \
+  --provenance=true \
+  --sbom=true \
   --push \
   .
 

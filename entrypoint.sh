@@ -11,7 +11,13 @@ filename=$(basename "$input_file" | sed 's/\.[^.]*$//')
 txt_file="${filename}.txt"
 
 echo "INPUT:  $input_file"
+echo "MODEL:  ${MODEL_SIZE:-turbo}"
 echo "OUTPUT: $filename.{txt,srt,vtt,tsv,json}"
+if [ -n "${HF_TOKEN:-}" ]; then
+  echo "HF_TOKEN: set (diarization enabled if supported)"
+else
+  echo "HF_TOKEN: not set (no speaker diarization)"
+fi
 echo "(Transcript is written only after transcription completes. Please wait.)"
 echo ""
 

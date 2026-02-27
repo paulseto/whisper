@@ -7,24 +7,35 @@ if "%~1"=="" (
     echo Example: transcribe.bat meeting.mp4
     echo          transcribe.bat meeting.mp4 large-v3
     echo.
-    echo Environment variables ^(or set in .env file^):
+    echo Environment variables ^(or set in env file^):
     echo   MODEL_SIZE   Whisper model ^(default: turbo^). Options: tiny, base, small, medium, large-v3, turbo
     echo   HF_TOKEN     Hugging Face token for speaker diarization
+    echo.
+    echo Config files ^(lowest to highest precedence^):
+    echo   %%APPDATA%%\whisper\env        per-user
+    echo   .\.env                         current directory
+    echo   Environment variables          system/user env vars ^(highest^)
     exit /b 1
 )
 
-REM Load .env file if present (from script directory or current directory)
-set "scriptdir=%~dp0"
-if exist "%scriptdir%.env" (
-    for /f "usebackq tokens=1,* delims==" %%a in ("%scriptdir%.env") do (
+REM Load env files (lowest to highest precedence).
+REM Only set variables that are not already defined,
+REM so system/user environment variables always win.
+
+if exist "%APPDATA%\whisper\env" (
+    for /f "usebackq tokens=1,* delims==" %%a in ("%APPDATA%\whisper\env") do (
         set "line=%%a"
-        if not "!line:~0,1!"=="#" if not "%%a"=="" set "%%a=%%b"
+        if not "!line:~0,1!"=="#" if not "%%a"=="" (
+            if not defined %%a set "%%a=%%b"
+        )
     )
 )
 if exist ".env" (
     for /f "usebackq tokens=1,* delims==" %%a in (".env") do (
         set "line=%%a"
-        if not "!line:~0,1!"=="#" if not "%%a"=="" set "%%a=%%b"
+        if not "!line:~0,1!"=="#" if not "%%a"=="" (
+            if not defined %%a set "%%a=%%b"
+        )
     )
 )
 
@@ -47,16 +58,15 @@ set "outputfile=%basename%.txt"
 REM Pass only the filename to the container so it finds /app/<filename>
 for %%f in ("%filename%") do set "nameonly=%%~nxf"
 
-REM Check if whisper:latest image exists locally; pull from Docker Hub if not
-docker image inspect whisper:latest >nul 2>&1
+REM Pull latest image if not available locally
+docker image inspect paulseto/whisper:latest >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Image whisper:latest not found locally. Pulling from paulseto/whisper...
+    echo Pulling paulseto/whisper:latest from Docker Hub...
     docker pull paulseto/whisper:latest
     if %errorlevel% neq 0 (
-        echo Failed to pull image. Run build.bat to build locally or check your network.
+        echo Failed to pull image. Check your network connection.
         exit /b 1
     )
-    docker tag paulseto/whisper:latest whisper:latest
 )
 
 echo.
@@ -75,13 +85,13 @@ echo.
 set "DOCKER_ENV=-e MODEL_SIZE=%MODEL_SIZE%"
 if defined HF_TOKEN set "DOCKER_ENV=%DOCKER_ENV% -e HF_TOKEN=%HF_TOKEN%"
 
-docker run --rm %DOCKER_ENV% -v "%filedir%:/app" whisper:latest "%nameonly%"
+docker run --rm %DOCKER_ENV% -v "%filedir%:/app" paulseto/whisper:latest "%nameonly%"
 
 if %errorlevel% equ 0 (
     echo.
     echo === Done. Transcript: %filedir%\%outputfile%
 ) else (
     echo.
-    echo Transcription failed. Check that the file exists and Docker image "whisper:latest" is built.
+    echo Transcription failed. Check that the file exists and Docker is running.
     exit /b 1
 )
