@@ -1,13 +1,11 @@
 #!/bin/bash
 
-# Check if input file is provided
 if [ -z "$1" ]; then
     echo "Error: Missing required parameter. Please provide a file name."
     echo "Usage: entrypoint.sh <filename>"
     exit 1
 fi
 
-# Extract filename without extension and create .txt version
 input_file="$1"
 filename=$(basename "$input_file" | sed 's/\.[^.]*$//')
 txt_file="${filename}.txt"
@@ -35,6 +33,18 @@ whisper-ctranslate2 "/app/$input_file" \
   --vad_filter True \
   --repetition_penalty 1.2 \
   "${EXTRA_ARGS[@]}"
+
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+  echo ""
+  echo "=== TRANSCRIPTION FAILED (exit code $EXIT_CODE) ==="
+  if [ $EXIT_CODE -eq 137 ]; then
+    echo "Process was killed (OOM). Try:"
+    echo "  - A smaller model: -e MODEL_SIZE=small"
+    echo "  - More memory:     docker run -m 8g ..."
+  fi
+  exit $EXIT_CODE
+fi
 
 echo ""
 echo "=== TRANSCRIPTION COMPLETE ==="

@@ -2,19 +2,27 @@
 set -e
 
 REPO="paulseto/whisper"
+MODEL_SIZE="${1:-turbo}"
+BUILD_NUMBER=$(date +"%Y%m%d-%H%M")
+PLATFORMS="linux/amd64,linux/arm64"
 
-echo "Tagging whisper:latest as ${REPO}:latest"
-docker tag whisper:latest "${REPO}:latest"
-
-echo "Pushing ${REPO}:latest"
-docker push "${REPO}:latest"
-
-# If a tag is passed (e.g. build number 20260224-1530), also push that
-if [ -n "$1" ]; then
-  echo "Tagging whisper:$1 as ${REPO}:$1"
-  docker tag "whisper:$1" "${REPO}:$1"
-  echo "Pushing ${REPO}:$1"
-  docker push "${REPO}:$1"
+BUILDER_NAME="whisper-multiarch"
+if ! docker buildx inspect "${BUILDER_NAME}" >/dev/null 2>&1; then
+  echo "Creating buildx builder: ${BUILDER_NAME}"
+  docker buildx create --name "${BUILDER_NAME}" --use
+else
+  docker buildx use "${BUILDER_NAME}"
 fi
 
-echo "Done."
+echo "Building and pushing ${REPO} (model: ${MODEL_SIZE}, build: ${BUILD_NUMBER})"
+echo "Platforms: ${PLATFORMS}"
+
+docker buildx build --no-cache \
+  --platform "${PLATFORMS}" \
+  --build-arg MODEL_SIZE="${MODEL_SIZE}" \
+  --tag "${REPO}:latest" \
+  --tag "${REPO}:${BUILD_NUMBER}" \
+  --push \
+  .
+
+echo "Done. Pushed ${REPO}:latest and ${REPO}:${BUILD_NUMBER} for ${PLATFORMS}."
