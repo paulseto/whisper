@@ -1,7 +1,7 @@
 # Stage 1: Install Python packages in full image (has build tools if needed)
 FROM python:3.12-bookworm AS builder
 
-RUN pip install --no-cache-dir -U pip
+RUN pip install --no-cache-dir "pip>=26.0"
 RUN pip install --no-cache-dir whisper-ctranslate2
 
 ARG TARGETARCH
