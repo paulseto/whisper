@@ -20,17 +20,32 @@ Transcribe or translate meeting audio/video to English using [whisper-ctranslate
 
    Output files (e.g. `meeting.txt`, `meeting.srt`) are written next to the source file. If the Docker image is not found locally, it is pulled from Docker Hub automatically.
 
-2. **Optional -- build the image locally**
+2. **Optional -- choose a model**
+
+   Pass the model as the second argument, or set it via environment variable or `.env` file:
+
+   ```bat
+   .\transcribe.bat meeting.mp4 large-v3
+   ```
+
+   Or create a `.env` file next to `transcribe.bat`:
+
+   ```
+   MODEL_SIZE=turbo
+   HF_TOKEN=hf_your_token_here
+   ```
+
+   See [Available models](#available-models) for all options.
+
+3. **Optional -- build the image locally**
 
    ```bat
    .\build.bat
    ```
 
-   Optional arg: `.\build.bat medium` to use the `medium` model instead of `turbo`.
+4. **Optional -- speaker diarization (amd64 only)**
 
-3. **Optional -- speaker diarization (amd64 only)**
-
-   Set your Hugging Face token, then run as above:
+   Set your Hugging Face token (via environment, `.env` file, or shell), then run as above:
 
    ```powershell
    $env:HF_TOKEN = "hf_your_token_here"
@@ -38,6 +53,47 @@ Transcribe or translate meeting audio/video to English using [whisper-ctranslate
    ```
 
    Speaker labels appear in the `.srt` file. Diarization is skipped on arm64 (no pyannote in that image).
+
+## Available models
+
+The model can be set via the `MODEL_SIZE` environment variable, a `.env` file, or as the second argument to `transcribe.bat`:
+
+```bat
+.\transcribe.bat meeting.mp4 large-v3
+```
+
+### Standard models (OpenAI)
+
+| Model | Parameters | VRAM | Relative Speed | Notes |
+|-------|-----------|------|---------------|-------|
+| `tiny` / `tiny.en` | 39M | ~1 GB | ~10x | Fastest, lowest quality |
+| `base` / `base.en` | 74M | ~1 GB | ~7x | Slightly better than tiny |
+| `small` / `small.en` | 244M | ~2 GB | ~4x | Good for simple audio |
+| `medium` / `medium.en` | 769M | ~5 GB | ~2x | Strong English accuracy |
+| `large-v1` | 1550M | ~10 GB | 1x | First large model |
+| `large-v2` | 1550M | ~10 GB | 1x | Improved training |
+| `large-v3` | 1550M | ~10 GB | 1x | Most accurate |
+| **`turbo`** | 809M | ~6 GB | ~8x | **Default. Near large-v3 accuracy, 8x faster** |
+
+The `.en` variants are English-only and slightly more accurate for English (mainly noticeable on `tiny` and `base`). `turbo` and `large-v3-turbo` are the same model.
+
+### Distilled models (Hugging Face)
+
+| Model | Based On | Relative Speed | Notes |
+|-------|----------|---------------|-------|
+| `distil-small.en` | small | ~6x | English only, compressed |
+| `distil-medium.en` | medium | ~4x | English only, compressed |
+| `distil-large-v2` | large-v2 | ~4x | English only, compressed |
+| `distil-large-v3` | large-v3 | ~4x | English only, compressed |
+| `distil-large-v3.5` | large-v3 | ~4x | Best distilled model |
+
+Distilled models are smaller "student" models trained to approximate the larger model. Faster but less accurate on accented speech, overlapping speakers, and domain-specific terms.
+
+### Recommendations
+
+- **Best quality:** `large-v3` — most accurate but slowest on CPU.
+- **Best balance:** `turbo` (default) — ~95% of large-v3 quality at 8x the speed.
+- **Fast + decent:** `distil-large-v3.5` — faster than turbo, English-only.
 
 ## Windows right-click integration
 
